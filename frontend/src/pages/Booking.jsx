@@ -62,7 +62,7 @@ export default function Booking() {
         if (!token) { navigate('/login'); return }
         setLoading(true)
         try {
-            const res = await axios.post('${BASE_URL}/api/v1/bookings', {
+            const res = await axios.post(`${BASE_URL}/api/v1/bookings`, {
                 salon_id: salonId,
                 service_id: selected.service.id,
                 staff_id: selected.staff.id,
@@ -93,7 +93,7 @@ export default function Booking() {
     const handleRazorpay = async (bookingData) => {
         try {
             const token = localStorage.getItem('token')
-            const res = await axios.post('${BASE_URL}/api/v1/payments/create', {
+            const res = await axios.post(`${BASE_URL}/api/v1/payments/create`, {
                 booking_id: bookingData.booking_id,
                 amount: bookingData.total_amount
             }, { headers: { Authorization: `Bearer ${token}` } })
@@ -105,7 +105,7 @@ export default function Booking() {
                 name: 'Roopsome',
                 order_id: res.data.order_id,
                 handler: async (response) => {
-                    await axios.post('${BASE_URL}/api/v1/payments/verify', {
+                    await axios.post(`${BASE_URL}/api/v1/payments/verify`, {
                         razorpay_order_id: res.data.order_id,
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_signature: response.razorpay_signature,
