@@ -4,6 +4,7 @@ import axios from 'axios'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import SalonCard from '../components/SalonCard'
+import BASE_URL from '../utils/api'
 
 export default function Salons() {
     const [searchParams] = useSearchParams()
@@ -17,7 +18,9 @@ export default function Salons() {
     const fetchSalons = async () => {
         setLoading(true)
         try {
-            const url = city ? `/api/v1/salons?city=${city}` : '/api/v1/salons'
+            const url = city
+                ? `${BASE_URL}/api/v1/salons?city=${city}`
+                : `${BASE_URL}/api/v1/salons`
             const res = await axios.get(url)
             setSalons(res.data)
         } catch (err) {

@@ -1,3 +1,4 @@
+import BASE_URL from '../utils/api'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -20,7 +21,7 @@ export default function BarberDashboard() {
 
     const fetchBookings = async () => {
         try {
-            const res = await axios.get('/api/v1/barber/bookings', {
+            const res = await axios.get('${BASE_URL}/api/v1/barber/bookings', {
                 headers: { Authorization: `Bearer ${token}` }
             })
             setBookings(res.data)
@@ -34,7 +35,7 @@ export default function BarberDashboard() {
     const handleAction = async (bookingId, action, extra = {}) => {
         try {
             await axios.put(
-                `/api/v1/bookings/${bookingId}/${action}`,
+                `${BASE_URL}/api/v1/bookings/${bookingId}/${action}`,
                 extra,
                 { headers: { Authorization: `Bearer ${token}` } }
             )

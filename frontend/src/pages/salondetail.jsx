@@ -1,3 +1,4 @@
+import BASE_URL from '../utils/api'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -16,9 +17,9 @@ export default function SalonDetail() {
     const fetchData = async () => {
         try {
             const [salonRes, servicesRes, staffRes] = await Promise.all([
-                axios.get(`/api/v1/salons/${id}`),
-                axios.get(`/api/v1/salons/${id}/services`),
-                axios.get(`/api/v1/salons/${id}/staff`)
+                axios.get(`${BASE_URL}/api/v1/salons/${id}`),
+                axios.get(`${BASE_URL}/api/v1/salons/${id}/services`),
+                axios.get(`${BASE_URL}/api/v1/salons/${id}/staff`)
             ])
             setSalon(salonRes.data)
             setServices(servicesRes.data)

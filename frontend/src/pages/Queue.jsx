@@ -1,3 +1,4 @@
+import BASE_URL from '../utils/api'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -20,7 +21,7 @@ export default function Queue() {
     const fetchQueue = async () => {
         try {
             const today = new Date().toISOString().split('T')[0]
-            const res = await axios.get(`/api/v1/queue/${salonId}?date=${today}`)
+            const res = await axios.get(`${BASE_URL}/api/v1/queue/${salonId}?date=${today}`)
             setQueue(res.data)
         } catch (err) {
             console.error(err)
@@ -74,8 +75,8 @@ export default function Queue() {
                             <div
                                 key={item.booking_id}
                                 className={`bg-white rounded-2xl p-5 shadow-sm border-2 transition-all ${index === 0
-                                        ? 'border-green-400 bg-green-50'
-                                        : 'border-gray-100'
+                                    ? 'border-green-400 bg-green-50'
+                                    : 'border-gray-100'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
@@ -83,10 +84,10 @@ export default function Queue() {
 
                                         {/* Position Badge */}
                                         <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0 ${index === 0
-                                                ? 'bg-green-500 text-white'
-                                                : index === 1
-                                                    ? 'bg-yellow-400 text-white'
-                                                    : 'bg-gray-200 text-gray-600'
+                                            ? 'bg-green-500 text-white'
+                                            : index === 1
+                                                ? 'bg-yellow-400 text-white'
+                                                : 'bg-gray-200 text-gray-600'
                                             }`}>
                                             {index === 0 ? '✓' : `#${item.queue_position}`}
                                         </div>

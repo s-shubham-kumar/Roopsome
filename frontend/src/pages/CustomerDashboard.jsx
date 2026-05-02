@@ -1,3 +1,4 @@
+import BASE_URL from '../utils/api'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -17,7 +18,7 @@ export default function CustomerDashboard() {
 
     const fetchBookings = async () => {
         try {
-            const res = await axios.get('/api/v1/my-bookings', {
+            const res = await axios.get('${BASE_URL}/api/v1/my-bookings', {
                 headers: { Authorization: `Bearer ${token}` }
             })
             setBookings(res.data)
@@ -31,7 +32,7 @@ export default function CustomerDashboard() {
     const handleCancel = async (bookingId) => {
         if (!confirm('Cancel this booking?')) return
         try {
-            await axios.put(`/api/v1/bookings/${bookingId}/cancel`,
+            await axios.put(`${BASE_URL}/api/v1/bookings/${bookingId}/cancel`,
                 { reason: 'Customer cancelled' },
                 { headers: { Authorization: `Bearer ${token}` } }
             )

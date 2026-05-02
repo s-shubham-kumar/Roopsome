@@ -1,3 +1,4 @@
+import BASE_URL from '../utils/api'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -16,7 +17,7 @@ export default function Signup() {
         setLoading(true)
         setError('')
         try {
-            const res = await axios.post('/api/v1/auth/signup', form)
+            const res = await axios.post(`${BASE_URL}/api/v1/auth/signup`, form)
             localStorage.setItem('token', res.data.token)
             localStorage.setItem('userId', res.data.user_id)
             localStorage.setItem('userType', res.data.user_type)
@@ -58,8 +59,8 @@ export default function Signup() {
                                 type="button"
                                 onClick={() => setForm({ ...form, user_type: type })}
                                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all capitalize ${form.user_type === type
-                                        ? 'bg-purple-600 text-white shadow'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                    ? 'bg-purple-600 text-white shadow'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 {type === 'salon_owner' ? 'Owner' : type.charAt(0).toUpperCase() + type.slice(1)}

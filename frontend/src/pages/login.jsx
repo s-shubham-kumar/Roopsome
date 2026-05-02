@@ -1,3 +1,4 @@
+import BASE_URL from '../utils/api'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -14,7 +15,7 @@ export default function Login() {
         setLoading(true)
         setError('')
         try {
-            const res = await axios.post('/api/v1/auth/login', form)
+            const res = await axios.post(`${BASE_URL}/api/v1/auth/login`, form)
             localStorage.setItem('token', res.data.token)
             localStorage.setItem('userId', res.data.user_id)
             localStorage.setItem('userType', res.data.user_type)

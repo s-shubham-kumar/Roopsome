@@ -1,3 +1,4 @@
+import BASE_URL from '../utils/api'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -35,19 +36,19 @@ export default function Booking() {
     }, [selected.staff, selected.date])
 
     const fetchServices = async () => {
-        const res = await axios.get(`/api/v1/salons/${salonId}/services`)
+        const res = await axios.get(`${BASE_URL}/api/v1/salons/${salonId}/services`)
         setServices(res.data)
     }
 
     const fetchStaff = async () => {
-        const res = await axios.get(`/api/v1/salons/${salonId}/staff`)
+        const res = await axios.get(`${BASE_URL}/api/v1/salons/${salonId}/staff`)
         setStaff(res.data)
     }
 
     const fetchSlots = async () => {
         setLoading(true)
         try {
-            const res = await axios.get(`/api/v1/slots?staff_id=${selected.staff.id}&date=${selected.date}`)
+            const res = await axios.get(`${BASE_URL}/api/v1/slots?staff_id=${selected.staff.id}&date=${selected.date}`)
             setSlots(res.data)
         } catch {
             setSlots([])
@@ -61,7 +62,7 @@ export default function Booking() {
         if (!token) { navigate('/login'); return }
         setLoading(true)
         try {
-            const res = await axios.post('/api/v1/bookings', {
+            const res = await axios.post('${BASE_URL}/api/v1/bookings', {
                 salon_id: salonId,
                 service_id: selected.service.id,
                 staff_id: selected.staff.id,
@@ -92,7 +93,7 @@ export default function Booking() {
     const handleRazorpay = async (bookingData) => {
         try {
             const token = localStorage.getItem('token')
-            const res = await axios.post('/api/v1/payments/create', {
+            const res = await axios.post('${BASE_URL}/api/v1/payments/create', {
                 booking_id: bookingData.booking_id,
                 amount: bookingData.total_amount
             }, { headers: { Authorization: `Bearer ${token}` } })
@@ -104,7 +105,7 @@ export default function Booking() {
                 name: 'Roopsome',
                 order_id: res.data.order_id,
                 handler: async (response) => {
-                    await axios.post('/api/v1/payments/verify', {
+                    await axios.post('${BASE_URL}/api/v1/payments/verify', {
                         razorpay_order_id: res.data.order_id,
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_signature: response.razorpay_signature,
@@ -138,8 +139,8 @@ export default function Booking() {
                         {steps.map((s, i) => (
                             <div key={i} className="flex items-center">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step > i + 1 ? 'bg-green-500 text-white' :
-                                        step === i + 1 ? 'bg-purple-600 text-white' :
-                                            'bg-gray-200 text-gray-400'
+                                    step === i + 1 ? 'bg-purple-600 text-white' :
+                                        'bg-gray-200 text-gray-400'
                                     }`}>
                                     {step > i + 1 ? '✓' : i + 1}
                                 </div>
@@ -233,10 +234,10 @@ export default function Booking() {
                                                     disabled={slot.available <= 0}
                                                     onClick={() => { setSelected({ ...selected, slot }); setStep(4) }}
                                                     className={`py-3 px-2 rounded-xl text-sm font-medium border-2 transition-all ${slot.available <= 0
-                                                            ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
-                                                            : selected.slot?.id === slot.id
-                                                                ? 'border-purple-600 bg-purple-600 text-white'
-                                                                : 'border-gray-200 hover:border-purple-400 hover:bg-purple-50'
+                                                        ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+                                                        : selected.slot?.id === slot.id
+                                                            ? 'border-purple-600 bg-purple-600 text-white'
+                                                            : 'border-gray-200 hover:border-purple-400 hover:bg-purple-50'
                                                         }`}
                                                 >
                                                     {slot.slot_time?.slice(0, 5)}
@@ -265,8 +266,8 @@ export default function Booking() {
                                             key={type}
                                             onClick={() => setSelected({ ...selected, bookingType: type })}
                                             className={`py-3 rounded-xl font-medium border-2 transition-all ${selected.bookingType === type
-                                                    ? 'border-purple-600 bg-purple-600 text-white'
-                                                    : 'border-gray-200 hover:border-purple-400'
+                                                ? 'border-purple-600 bg-purple-600 text-white'
+                                                : 'border-gray-200 hover:border-purple-400'
                                                 }`}
                                         >
                                             {type === 'salon' ? '🏪 Visit Salon' : '🏠 Home Service'}
@@ -300,8 +301,8 @@ export default function Booking() {
                                             key={pm.value}
                                             onClick={() => setSelected({ ...selected, paymentMode: pm.value })}
                                             className={`w-full flex items-center gap-4 p-4 border-2 rounded-xl transition-all text-left ${selected.paymentMode === pm.value
-                                                    ? 'border-purple-600 bg-purple-50'
-                                                    : 'border-gray-200 hover:border-purple-300'
+                                                ? 'border-purple-600 bg-purple-50'
+                                                : 'border-gray-200 hover:border-purple-300'
                                                 }`}
                                         >
                                             <span className="text-2xl">{pm.icon}</span>
