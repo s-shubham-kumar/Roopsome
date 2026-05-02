@@ -18,7 +18,7 @@ export default function CustomerDashboard() {
 
     const fetchBookings = async () => {
         try {
-            const res = await axios.get('${BASE_URL}/api/v1/my-bookings', {
+            const res = await axios.get(`${BASE_URL}/api/v1/my-bookings`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             setBookings(res.data)
