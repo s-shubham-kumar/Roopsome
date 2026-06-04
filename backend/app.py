@@ -54,10 +54,11 @@ JWT_HOURS   = 24
 # ── Database ───────────────────────────────────────────────────────────────
 
 def get_db():
-    return psycopg2.connect(
-        host=DB_HOST, port=DB_PORT,
-        database=DB_NAME, user=DB_USER, password=DB_PASSWORD
-    )
+   return psycopg2.connect(
+    host=DB_HOST, port=DB_PORT,
+    database=DB_NAME, user=DB_USER, password=DB_PASSWORD,
+    sslmode='require'
+)
 
 def query(sql, params=None, one=False):
     conn = None
