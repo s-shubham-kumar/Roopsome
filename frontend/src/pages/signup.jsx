@@ -23,6 +23,7 @@ export default function Signup() {
             localStorage.setItem('userType', res.data.user_type)
             localStorage.setItem('fullName', res.data.full_name)
             if (res.data.user_type === 'barber') navigate('/barber')
+            else if (res.data.user_type === 'salon_owner') navigate('/owner')
             else navigate('/salons')
         } catch (err) {
             setError(err.response?.data?.error || 'Signup failed')

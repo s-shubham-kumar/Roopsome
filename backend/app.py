@@ -647,6 +647,74 @@ def verify_payment():
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# OWNER ROUTES
+# ══════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/v1/my-salon', methods=['GET'])
+@auth(['salon_owner'])
+def my_salon():
+    row = query('SELECT * FROM salons WHERE owner_id=%s AND deleted_at IS NULL',
+                (request.uid,), one=True)
+    if not row:
+        return jsonify({'error': 'No salon found'}), 404
+    return jsonify(dict(row))
+
+
+@app.route('/api/v1/queue/<salon_id>/walk-in', methods=['POST'])
+@auth(['salon_owner'])
+def walk_in_queue(salon_id):
+    d             = request.json
+    customer_name = d.get('customer_name', '').strip()
+    service_id    = d.get('service_id')
+    staff_id      = d.get('staff_id')
+
+    if not all([customer_name, service_id, staff_id]):
+        return jsonify({'error': 'customer_name, service_id, staff_id required'}), 400
+
+    salon = query('SELECT id FROM salons WHERE id=%s AND owner_id=%s AND deleted_at IS NULL',
+                  (salon_id, request.uid), one=True)
+    if not salon:
+        return jsonify({'error': 'Salon not found'}), 404
+
+    svc = query('SELECT * FROM services WHERE id=%s', (service_id,), one=True)
+    if not svc:
+        return jsonify({'error': 'Service not found'}), 404
+
+    today    = str(datetime.now().date())
+    now_time = datetime.now().strftime('%H:%M')
+
+    res = query('''SELECT COALESCE(MAX(queue_position), 0) + 1 AS nxt
+                   FROM queue WHERE salon_id=%s AND queue_date=%s''',
+                (salon_id, today), one=True)
+    qpos = res['nxt']
+
+    bid = str(uuid.uuid4())
+    query('''INSERT INTO bookings
+             (id, salon_id, customer_id, staff_id, service_id, time_slot_id,
+              booking_date, booking_time, duration_minutes, booking_type,
+              service_price, home_service_charge, total_amount,
+              status, barber_response_status)
+             VALUES (%s,%s,%s,%s,%s,NULL,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
+          (bid, salon_id, request.uid, staff_id, service_id,
+           today, now_time, svc['duration_minutes'], 'salon',
+           svc['final_price'], 0, svc['final_price'],
+           'confirmed', 'accepted'))
+
+    qid = str(uuid.uuid4())
+    query('''INSERT INTO queue
+             (id, salon_id, booking_id, staff_id, customer_id,
+              queue_date, queue_position, status)
+             VALUES (%s,%s,%s,%s,%s,%s,%s,%s)''',
+          (qid, salon_id, bid, staff_id, request.uid,
+           today, qpos, 'waiting'))
+
+    return jsonify({
+        'message': 'Customer added to queue',
+        'queue_position': qpos,
+        'booking_id': bid
+    }), 201
+
+# ══════════════════════════════════════════════════════════════════════════
 # HEALTH CHECK
 # ══════════════════════════════════════════════════════════════════════════
 

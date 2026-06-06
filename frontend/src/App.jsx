@@ -8,6 +8,7 @@ import Booking from './pages/Booking'
 import Queue from './pages/Queue'
 import CustomerDashboard from './pages/CustomerDashboard'
 import BarberDashboard from './pages/BarberDashboard'
+import OwnerDashboard from './pages/OwnerDashboard'
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/queue/:salonId" element={<Queue />} />
         <Route path="/dashboard" element={<CustomerDashboard />} />
         <Route path="/barber" element={<BarberDashboard />} />
+        <Route path="/owner" element={<OwnerDashboard />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
