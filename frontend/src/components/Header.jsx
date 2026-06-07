@@ -33,6 +33,11 @@ export default function Header() {
                             My Dashboard
                         </Link>
                     )}
+                    {token && userType === 'salon_owner' && (
+                        <Link to="/owner" className="text-gray-600 hover:text-purple-600 font-medium">
+                            My Dashboard
+                        </Link>
+                    )}
                     {token && userType === 'customer' && (
                         <Link to="/dashboard" className="text-gray-600 hover:text-purple-600 font-medium">
                             My Bookings
