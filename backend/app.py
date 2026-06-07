@@ -332,6 +332,45 @@ def get_slots():
                     WHERE staff_id=%s AND slot_date=%s AND is_blocked=FALSE
                     ORDER BY slot_time''',
                  (staff_id, date))
+
+    # Auto-generate slots if none exist
+    if not rows:
+        staff_info = query('''SELECT st.salon_id, s.opening_time, s.closing_time
+                              FROM staff st
+                              JOIN salons s ON st.salon_id = s.id
+                              WHERE st.id=%s''', (staff_id,), one=True)
+
+        if staff_info:
+            from datetime import timedelta, time as time_type
+            ot = staff_info['opening_time']
+            ct = staff_info['closing_time']
+
+            # Handle both string and time object
+            if isinstance(ot, time_type):
+                opening = datetime.combine(datetime.min.date(), ot)
+                closing = datetime.combine(datetime.min.date(), ct)
+            else:
+                opening = datetime.strptime(str(ot)[:5], '%H:%M')
+                closing = datetime.strptime(str(ct)[:5], '%H:%M')
+
+            current = opening
+            while current < closing:
+                query('''INSERT INTO time_slots
+                         (id, salon_id, staff_id, slot_date, slot_time,
+                          max_capacity, booked_count, is_blocked)
+                         VALUES (%s,%s,%s,%s,%s,%s,%s,%s)''',
+                      (str(uuid.uuid4()), staff_info['salon_id'],
+                       staff_id, date,
+                       current.strftime('%H:%M'), 1, 0, False))
+                current += timedelta(minutes=30)
+
+            rows = query('''SELECT id, slot_time, max_capacity, booked_count,
+                                   (max_capacity - booked_count) AS available
+                            FROM time_slots
+                            WHERE staff_id=%s AND slot_date=%s AND is_blocked=FALSE
+                            ORDER BY slot_time''',
+                         (staff_id, date))
+
     return jsonify([dict(r) for r in rows])
 
 
