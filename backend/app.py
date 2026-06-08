@@ -509,13 +509,19 @@ def my_bookings():
 @app.route('/api/v1/barber/bookings', methods=['GET'])
 @auth(['barber'])
 def barber_bookings():
-    rows = query('''SELECT b.*, u.full_name AS customer_name, u.phone,
+    barber = query('SELECT phone FROM users WHERE id=%s', (request.uid,), one=True)
+    phone = barber['phone'] if barber else ''
+
+    rows = query('''SELECT b.*, u.full_name AS customer_name,
+                           u.phone AS customer_phone,
                            s.name AS service_name
                     FROM bookings b
-                    JOIN users    u ON b.customer_id = u.id
-                    JOIN services s ON b.service_id  = s.id
+                    JOIN users    u  ON b.customer_id = u.id
+                    JOIN services s  ON b.service_id  = s.id
+                    JOIN staff    st ON b.staff_id     = st.id
                     WHERE b.barber_response_status=%s
-                    ORDER BY b.created_at''', ('awaiting',))
+                    AND   st.phone = %s
+                    ORDER BY b.created_at''', ('awaiting', phone))
     return jsonify([dict(r) for r in rows])
 
 
@@ -557,7 +563,7 @@ def delay_booking(bid):
 
 
 @app.route('/api/v1/bookings/<bid>/complete', methods=['PUT'])
-@auth(['barber'])
+@auth(['barber', 'salon_owner'])
 def complete_booking(bid):
     query('''UPDATE bookings SET status=%s, queue_position=NULL
              WHERE id=%s''', ('completed', bid))
