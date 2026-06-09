@@ -339,6 +339,10 @@ export default function OwnerDashboard() {
                                         <p className="font-semibold text-gray-800">{s.name}</p>
                                         <p className="text-gray-400 text-sm">{s.specialization || 'General'} {s.phone ? `• ${s.phone}` : ''}</p>
                                     </div>
+                                    <button onClick={() => removeStaff(s.id)}
+                                        className="ml-auto text-red-400 hover:text-red-600 text-sm font-medium px-3 py-1 border border-red-200 rounded-lg hover:bg-red-50">
+                                        Remove
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -385,13 +389,55 @@ export default function OwnerDashboard() {
                                         <p className="font-semibold text-gray-800">{s.name}</p>
                                         <p className="text-gray-400 text-sm capitalize">{s.category} • {s.duration_minutes} min</p>
                                     </div>
-                                    <span className="text-purple-600 font-bold text-lg">₹{s.final_price}</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-purple-600 font-bold text-lg">₹{s.final_price}</span>
+                                        <button onClick={() => removeService(s.id)}
+                                            className="text-red-400 hover:text-red-600 text-sm font-medium px-3 py-1 border border-red-200 rounded-lg hover:bg-red-50">
+                                            Remove
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
             </div>
+            {/* Danger Zone */}
+            <div className="mt-12 border border-red-200 rounded-2xl p-6 bg-red-50">
+                <h3 className="font-bold text-red-700 mb-1">Danger Zone</h3>
+                <p className="text-red-500 text-sm mb-4">
+                    Deleting your account will remove all your salon data permanently.
+                </p>
+                <button onClick={deleteAccount}
+                    className="bg-red-500 text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-red-600">
+                    Delete My Account
+                </button>
+            </div>
         </div>
     )
+}
+const removeStaff = async (staffId) => {
+    if (!window.confirm('Remove this staff member?')) return
+    try {
+        await axios.delete(api(`/api/v1/salons/${salon.id}/staff/${staffId}`), { headers: headers() })
+        fetchStaff(salon.id)
+    } catch { alert('Failed to remove') }
+}
+
+const removeService = async (serviceId) => {
+    if (!window.confirm('Remove this service?')) return
+    try {
+        await axios.delete(api(`/api/v1/salons/${salon.id}/services/${serviceId}`), { headers: headers() })
+        fetchServices(salon.id)
+    } catch { alert('Failed to remove') }
+}
+
+const deleteAccount = async () => {
+    if (!window.confirm('Are you sure? This will permanently delete your account!')) return
+    if (!window.confirm('Last warning — account will be deleted. Continue?')) return
+    try {
+        await axios.delete(api('/api/v1/account'), { headers: headers() })
+        localStorage.clear()
+        navigate('/')
+    } catch { alert('Failed to delete account') }
 }

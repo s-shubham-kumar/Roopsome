@@ -759,6 +759,35 @@ def walk_in_queue(salon_id):
         'booking_id': bid
     }), 201
 
+@app.route('/api/v1/salons/<sid>/staff/<staff_id>', methods=['DELETE'])
+@auth(['salon_owner'])
+def remove_staff(sid, staff_id):
+    salon = query('SELECT id FROM salons WHERE id=%s AND owner_id=%s',
+                  (sid, request.uid), one=True)
+    if not salon:
+        return jsonify({'error': 'Unauthorized'}), 403
+    query('UPDATE staff SET is_available=FALSE WHERE id=%s AND salon_id=%s',
+          (staff_id, sid))
+    return jsonify({'message': 'Staff removed'})
+
+
+@app.route('/api/v1/salons/<sid>/services/<service_id>', methods=['DELETE'])
+@auth(['salon_owner'])
+def remove_service(sid, service_id):
+    salon = query('SELECT id FROM salons WHERE id=%s AND owner_id=%s',
+                  (sid, request.uid), one=True)
+    if not salon:
+        return jsonify({'error': 'Unauthorized'}), 403
+    query('UPDATE services SET is_active=FALSE WHERE id=%s AND salon_id=%s',
+          (service_id, sid))
+    return jsonify({'message': 'Service removed'})
+
+
+@app.route('/api/v1/account', methods=['DELETE'])
+@auth(['customer', 'barber', 'salon_owner'])
+def delete_account():
+    query('UPDATE users SET is_active=FALSE WHERE id=%s', (request.uid,))
+    return jsonify({'message': 'Account deleted'})
 # ══════════════════════════════════════════════════════════════════════════
 # HEALTH CHECK
 # ══════════════════════════════════════════════════════════════════════════
