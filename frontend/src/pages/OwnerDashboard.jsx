@@ -114,7 +114,31 @@ export default function OwnerDashboard() {
             fetchQueue(salon.id)
         } catch { }
     }
+    const removeStaff = async (staffId) => {
+        if (!window.confirm('Remove this staff member?')) return
+        try {
+            await axios.delete(api(`/api/v1/salons/${salon.id}/staff/${staffId}`), { headers: headers() })
+            fetchStaff(salon.id)
+        } catch { alert('Failed to remove') }
+    }
 
+    const removeService = async (serviceId) => {
+        if (!window.confirm('Remove this service?')) return
+        try {
+            await axios.delete(api(`/api/v1/salons/${salon.id}/services/${serviceId}`), { headers: headers() })
+            fetchServices(salon.id)
+        } catch { alert('Failed to remove') }
+    }
+
+    const deleteAccount = async () => {
+        if (!window.confirm('Are you sure? This will permanently delete your account!')) return
+        if (!window.confirm('Last warning — account will be deleted. Continue?')) return
+        try {
+            await axios.delete(api('/api/v1/account'), { headers: headers() })
+            localStorage.clear()
+            navigate('/')
+        } catch { alert('Failed to delete account') }
+    }
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center">
             <div className="text-purple-600 text-lg">Loading...</div>
@@ -415,29 +439,4 @@ export default function OwnerDashboard() {
             </div>
         </div>
     )
-}
-const removeStaff = async (staffId) => {
-    if (!window.confirm('Remove this staff member?')) return
-    try {
-        await axios.delete(api(`/api/v1/salons/${salon.id}/staff/${staffId}`), { headers: headers() })
-        fetchStaff(salon.id)
-    } catch { alert('Failed to remove') }
-}
-
-const removeService = async (serviceId) => {
-    if (!window.confirm('Remove this service?')) return
-    try {
-        await axios.delete(api(`/api/v1/salons/${salon.id}/services/${serviceId}`), { headers: headers() })
-        fetchServices(salon.id)
-    } catch { alert('Failed to remove') }
-}
-
-const deleteAccount = async () => {
-    if (!window.confirm('Are you sure? This will permanently delete your account!')) return
-    if (!window.confirm('Last warning — account will be deleted. Continue?')) return
-    try {
-        await axios.delete(api('/api/v1/account'), { headers: headers() })
-        localStorage.clear()
-        navigate('/')
-    } catch { alert('Failed to delete account') }
 }
