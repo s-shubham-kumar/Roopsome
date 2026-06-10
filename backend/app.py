@@ -180,7 +180,8 @@ def login():
     user = query('SELECT * FROM users WHERE email=%s', (email,), one=True)
     if not user or not check_pw(password, user['password_hash']):
         return jsonify({'error': 'Invalid credentials'}), 401
-
+    if not user.get('is_active', True):
+        return jsonify({'error': 'Account has been deleted'}), 401
     return jsonify({
         'message'  : 'Login successful',
         'token'    : make_token(user['id'], email, user['user_type']),
@@ -782,6 +783,22 @@ def remove_service(sid, service_id):
           (service_id, sid))
     return jsonify({'message': 'Service removed'})
 
+@app.route('/api/v1/salons/<sid>/services/<service_id>', methods=['PUT'])
+@auth(['salon_owner'])
+def update_service(sid, service_id):
+    d = request.json
+    salon = query('SELECT id FROM salons WHERE id=%s AND owner_id=%s',
+                  (sid, request.uid), one=True)
+    if not salon:
+        return jsonify({'error': 'Unauthorized'}), 403
+    name       = d.get('name', '').strip()
+    base_price = float(d.get('base_price', 0))
+    duration   = int(d.get('duration_minutes', 30))
+    query('''UPDATE services
+             SET name=%s, base_price=%s, final_price=%s, duration_minutes=%s
+             WHERE id=%s AND salon_id=%s''',
+          (name, base_price, round(base_price, 2), duration, service_id, sid))
+    return jsonify({'message': 'Service updated'})
 
 @app.route('/api/v1/account', methods=['DELETE'])
 @auth(['customer', 'barber', 'salon_owner'])
