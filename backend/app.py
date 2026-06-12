@@ -177,11 +177,13 @@ def login():
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
 
-    user = query('SELECT * FROM users WHERE email=%s', (email,), one=True)
+    user = query('SELECT id, email, password_hash, user_type, full_name, is_active FROM users WHERE email=%s',
+                 (email,), one=True)
     if not user or not check_pw(password, user['password_hash']):
         return jsonify({'error': 'Invalid credentials'}), 401
     if not user.get('is_active', True):
         return jsonify({'error': 'Account has been deleted'}), 401
+
     return jsonify({
         'message'  : 'Login successful',
         'token'    : make_token(user['id'], email, user['user_type']),
@@ -189,7 +191,6 @@ def login():
         'user_type': user['user_type'],
         'full_name': user['full_name']
     })
-
 
 # ══════════════════════════════════════════════════════════════════════════
 # SALON ROUTES
@@ -804,6 +805,7 @@ def update_service(sid, service_id):
 @auth(['customer', 'barber', 'salon_owner'])
 def delete_account():
     query('UPDATE users SET is_active=FALSE WHERE id=%s', (request.uid,))
+    query('UPDATE salons SET deleted_at=NOW() WHERE owner_id=%s', (request.uid,))
     return jsonify({'message': 'Account deleted'})
 # ══════════════════════════════════════════════════════════════════════════
 # HEALTH CHECK

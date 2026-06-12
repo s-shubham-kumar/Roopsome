@@ -22,6 +22,8 @@ export default function OwnerDashboard() {
     const [newStaff, setNewStaff] = useState({ name: '', phone: '', specialization: '' })
     const [newService, setNewService] = useState({ name: '', base_price: '', duration_minutes: '30', category: 'haircut' })
     const [addingCustomer, setAddingCustomer] = useState(false)
+    const [editingService, setEditingService] = useState(null)
+    const [editForm, setEditForm] = useState({ name: '', base_price: '', duration_minutes: '' })
     const [customerForm, setCustomerForm] = useState({ customer_name: '', phone: '', service_id: '', staff_id: '' })
     const fullName = localStorage.getItem('fullName') || 'Owner'
 
@@ -138,6 +140,23 @@ export default function OwnerDashboard() {
             localStorage.clear()
             navigate('/')
         } catch { alert('Failed to delete account') }
+    }
+
+    const startEdit = (s) => {
+        setEditingService(s.id)
+        setEditForm({ name: s.name, base_price: s.base_price, duration_minutes: s.duration_minutes })
+    }
+
+    const saveEdit = async (serviceId) => {
+        try {
+            await axios.put(
+                api(`/api/v1/salons/${salon.id}/services/${serviceId}`),
+                { ...editForm, base_price: parseFloat(editForm.base_price) },
+                { headers: headers() }
+            )
+            setEditingService(null)
+            fetchServices(salon.id)
+        } catch { alert('Failed to update') }
     }
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center">
@@ -408,35 +427,63 @@ export default function OwnerDashboard() {
                             {services.length === 0 ? (
                                 <div className="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-400">No services added yet</div>
                             ) : services.map(s => (
-                                <div key={s.id} className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between">
-                                    <div>
-                                        <p className="font-semibold text-gray-800">{s.name}</p>
-                                        <p className="text-gray-400 text-sm capitalize">{s.category} • {s.duration_minutes} min</p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-purple-600 font-bold text-lg">₹{s.final_price}</span>
-                                        <button onClick={() => removeService(s.id)}
-                                            className="text-red-400 hover:text-red-600 text-sm font-medium px-3 py-1 border border-red-200 rounded-lg hover:bg-red-50">
-                                            Remove
-                                        </button>
-                                    </div>
+                                <div key={s.id} className="bg-white rounded-2xl shadow-sm p-4">
+                                    {editingService === s.id ? (
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <input value={editForm.name}
+                                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                                className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-500"
+                                                placeholder="Service name" />
+                                            <input type="number" value={editForm.base_price}
+                                                onChange={e => setEditForm({ ...editForm, base_price: e.target.value })}
+                                                className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-500"
+                                                placeholder="Price ₹" />
+                                            <input type="number" value={editForm.duration_minutes}
+                                                onChange={e => setEditForm({ ...editForm, duration_minutes: e.target.value })}
+                                                className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-500"
+                                                placeholder="Duration (min)" />
+                                            <button onClick={() => saveEdit(s.id)}
+                                                className="bg-purple-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-purple-700">
+                                                Save
+                                            </button>
+                                            <button onClick={() => setEditingService(null)}
+                                                className="border border-gray-200 text-gray-500 py-2 rounded-xl text-sm col-span-2">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-semibold text-gray-800">{s.name}</p>
+                                                <p className="text-gray-400 text-sm capitalize">{s.category} • {s.duration_minutes} min</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-purple-600 font-bold text-lg">₹{s.final_price}</span>
+                                                <button onClick={() => startEdit(s)}
+                                                    className="text-blue-400 hover:text-blue-600 text-sm font-medium px-3 py-1 border border-blue-200 rounded-lg hover:bg-blue-50">
+                                                    Edit
+                                                </button>
+                                                <button onClick={() => removeService(s.id)}
+                                                    className="text-red-400 hover:text-red-600 text-sm font-medium px-3 py-1 border border-red-200 rounded-lg hover:bg-red-50">
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
+                        {/* Danger Zone */}
+                        <div className="mt-12 border border-red-200 rounded-2xl p-6 bg-red-50">
+                            <h3 className="font-bold text-red-700 mb-1">Danger Zone</h3>
+                            <p className="text-red-500 text-sm mb-4">
+                                Deleting your account will remove all your salon data permanently.
+                            </p>
+                            <button onClick={deleteAccount}
+                                className="bg-red-500 text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-red-600">
+                                Delete My Account
+                            </button>
+                        </div>
                     </div>
-                )}
-            </div>
-            {/* Danger Zone */}
-            <div className="mt-12 border border-red-200 rounded-2xl p-6 bg-red-50">
-                <h3 className="font-bold text-red-700 mb-1">Danger Zone</h3>
-                <p className="text-red-500 text-sm mb-4">
-                    Deleting your account will remove all your salon data permanently.
-                </p>
-                <button onClick={deleteAccount}
-                    className="bg-red-500 text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-red-600">
-                    Delete My Account
-                </button>
-            </div>
-        </div>
-    )
-}
+                )
+                }
