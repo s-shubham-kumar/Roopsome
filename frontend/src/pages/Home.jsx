@@ -34,23 +34,23 @@ export default function Home() {
                     </p>
 
                     {/* Search Box */}
-                    <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-                        <div className="flex bg-white rounded-2xl overflow-hidden shadow-2xl">
-                            <div className="flex items-center px-4 text-gray-400">
-                                📍
+                    <form onSubmit={handleSearch} className="max-w-2xl mx-auto px-4">
+                        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                            <div className="flex items-center px-4 py-1 border-b border-gray-100">
+                                <span className="text-xl mr-3">📍</span>
+                                <input
+                                    type="text"
+                                    placeholder="Search by city... (e.g. Patna, Delhi)"
+                                    value={city}
+                                    onChange={(e) => setCity(e.target.value)}
+                                    className="flex-1 py-3 text-gray-800 outline-none text-base"
+                                />
                             </div>
-                            <input
-                                type="text"
-                                placeholder="Search by city... (e.g. Patna, Delhi)"
-                                value={city}
-                                onChange={(e) => setCity(e.target.value)}
-                                className="flex-1 py-4 px-2 text-gray-800 outline-none text-lg"
-                            />
                             <button
                                 type="submit"
-                                className="bg-purple-600 text-white px-8 py-4 font-bold text-lg hover:bg-purple-700 transition-colors"
+                                className="w-full bg-purple-600 text-white py-4 font-bold text-lg hover:bg-purple-700 transition-colors"
                             >
-                                Search
+                                🔍 Search Salons
                             </button>
                         </div>
                     </form>
