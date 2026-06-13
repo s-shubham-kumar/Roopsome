@@ -42,7 +42,7 @@ export default function Salons() {
             {/* Search Bar */}
             <div className="bg-white border-b border-gray-100 py-4 sticky top-16 z-40">
                 <div className="max-w-6xl mx-auto px-4">
-                    <form onSubmit={handleSearch} className="flex gap-3">
+                    <form onSubmit={handleSearch} className="flex gap-3 flex-wrap">
                         <div className="flex-1 flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4">
                             <span className="mr-2">📍</span>
                             <input
@@ -55,7 +55,7 @@ export default function Salons() {
                         </div>
                         <button
                             type="submit"
-                            className="bg-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-purple-700"
+                            className="bg-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-purple-700 w-full sm:w-auto"
                         >
                             Search
                         </button>
