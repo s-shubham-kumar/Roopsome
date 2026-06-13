@@ -24,7 +24,8 @@ export default function Header() {
                 </Link>
 
                 {/* Nav Links */}
-                <nav className="hidden md:flex items-center gap-6">
+                {/* Nav Links */}
+                <nav className="flex items-center gap-6">
                     <Link to="/salons" className="text-gray-600 hover:text-purple-600 font-medium">
                         Find Salons
                     </Link>
