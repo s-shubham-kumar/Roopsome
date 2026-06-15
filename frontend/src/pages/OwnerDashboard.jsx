@@ -165,11 +165,11 @@ export default function OwnerDashboard() {
             const ext = file.name.split('.').pop()
             const fileName = `${salon.id}.${ext}`
             const { data, error } = await supabase.storage
-                .from('salon-images')
+                .from('Salon-images')
                 .upload(fileName, file, { upsert: true })
             if (error) throw error
             const { data: urlData } = supabase.storage
-                .from('salon-images')
+                .from('Salon-images')
                 .getPublicUrl(fileName)
             await axios.put(
                 api(`/api/v1/salons/${salon.id}/image`),
