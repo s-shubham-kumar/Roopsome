@@ -801,6 +801,17 @@ def update_service(sid, service_id):
           (name, base_price, round(base_price, 2), duration, service_id, sid))
     return jsonify({'message': 'Service updated'})
 
+@app.route('/api/v1/salons/<sid>/image', methods=['PUT'])
+@auth(['salon_owner'])
+def update_salon_image(sid):
+    image_url = request.json.get('image_url', '')
+    salon = query('SELECT id FROM salons WHERE id=%s AND owner_id=%s',
+                  (sid, request.uid), one=True)
+    if not salon:
+        return jsonify({'error': 'Unauthorized'}), 403
+    query('UPDATE salons SET image_url=%s WHERE id=%s', (image_url, sid))
+    return jsonify({'message': 'Image updated'})
+
 @app.route('/api/v1/account', methods=['DELETE'])
 @auth(['customer', 'barber', 'salon_owner'])
 def delete_account():

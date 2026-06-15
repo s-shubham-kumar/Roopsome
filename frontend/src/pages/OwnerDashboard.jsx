@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import BASE_URL from '../utils/api'
+import { supabase } from '../utils/supabase'
 
 const api = (path) => `${BASE_URL}${path}`
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` })
@@ -158,6 +159,29 @@ export default function OwnerDashboard() {
             fetchServices(salon.id)
         } catch { alert('Failed to update') }
     }
+    const uploadPhoto = async (file) => {
+        if (!file || !salon) return
+        try {
+            const ext = file.name.split('.').pop()
+            const fileName = `${salon.id}.${ext}`
+            const { data, error } = await supabase.storage
+                .from('salon-images')
+                .upload(fileName, file, { upsert: true })
+            if (error) throw error
+            const { data: urlData } = supabase.storage
+                .from('salon-images')
+                .getPublicUrl(fileName)
+            await axios.put(
+                api(`/api/v1/salons/${salon.id}/image`),
+                { image_url: urlData.publicUrl },
+                { headers: headers() }
+            )
+            setSalon({ ...salon, image_url: urlData.publicUrl })
+            alert('Photo uploaded!')
+        } catch (err) {
+            alert('Upload failed: ' + err.message)
+        }
+    }
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center">
             <div className="text-purple-600 text-lg">Loading...</div>
@@ -228,6 +252,17 @@ export default function OwnerDashboard() {
                 <div>
                     <span className="text-purple-600 font-bold text-xl">🪒 {salon.name}</span>
                     <span className="text-gray-400 text-sm ml-3">{today}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                        {salon.image_url && (
+                            <img src={salon.image_url} alt="salon"
+                                className="w-8 h-8 rounded-lg object-cover border border-purple-200" />
+                        )}
+                        <label className="text-xs text-purple-500 cursor-pointer hover:text-purple-700 font-medium">
+                            📷 {salon.image_url ? 'Change Photo' : 'Add Salon Photo'}
+                            <input type="file" accept="image/*" className="hidden"
+                                onChange={e => uploadPhoto(e.target.files[0])} />
+                        </label>
+                    </div>
                 </div>
                 <div className="flex items-center gap-4">
                     <span className="text-gray-600 text-sm">👋 {fullName}</span>
