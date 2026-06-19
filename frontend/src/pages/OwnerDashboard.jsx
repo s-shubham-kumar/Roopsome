@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import BASE_URL from '../utils/api'
-import { supabase } from '../utils/supabase'
 
 const api = (path) => `${BASE_URL}${path}`
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` })
@@ -15,6 +14,7 @@ export default function OwnerDashboard() {
     const [staff, setStaff] = useState([])
     const [services, setServices] = useState([])
     const [loading, setLoading] = useState(true)
+    const [uploading, setUploading] = useState(false)
     const [creating, setCreating] = useState(false)
     const [salonForm, setSalonForm] = useState({
         name: '', address: '', city: '', phone: '', description: '',
@@ -161,25 +161,47 @@ export default function OwnerDashboard() {
     }
     const uploadPhoto = async (file) => {
         if (!file || !salon) return
+
+        // File type check
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+        if (!allowedTypes.includes(file.type)) {
+            alert('Only JPG, PNG, WebP images allowed')
+            return
+        }
+
+        // File size check (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image must be under 5MB')
+            return
+        }
+
+        setUploading(true)
         try {
-            const ext = file.name.split('.').pop()
-            const fileName = `${salon.id}.${ext}`
-            const { data, error } = await supabase.storage
-                .from('Salon-image')
-                .upload(fileName, file, { upsert: true })
-            if (error) throw error
-            const { data: urlData } = supabase.storage
-                .from('Salon-image')
-                .getPublicUrl(fileName)
-            await axios.put(
-                api(`/api/v1/salons/${salon.id}/image`),
-                { image_url: urlData.publicUrl },
-                { headers: headers() }
+            const formData = new FormData()
+            formData.append('photo', file)
+
+            const response = await fetch(
+                api(`/api/v1/salon/${salon.id}/upload-photo`),
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        // ⚠️ Content-Type bilkul mat daalo — browser khud set karega
+                    },
+                    body: formData,
+                }
             )
-            setSalon({ ...salon, image_url: urlData.publicUrl })
-            alert('Photo uploaded!')
+
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.error || 'Upload failed')
+
+            setSalon({ ...salon, image_url: data.photo_url })
+            alert('Photo uploaded successfully!')
+
         } catch (err) {
             alert('Upload failed: ' + err.message)
+        } finally {
+            setUploading(false)
         }
     }
     if (loading) return (
@@ -258,8 +280,9 @@ export default function OwnerDashboard() {
                                 className="w-8 h-8 rounded-lg object-cover border border-purple-200" />
                         )}
                         <label className="text-xs text-purple-500 cursor-pointer hover:text-purple-700 font-medium">
-                            📷 {salon.image_url ? 'Change Photo' : 'Add Salon Photo'}
+                            📷 {uploading ? 'Uploading...' : salon.image_url ? 'Change Photo' : 'Add Salon Photo'}
                             <input type="file" accept="image/*" className="hidden"
+                                disabled={uploading}
                                 onChange={e => uploadPhoto(e.target.files[0])} />
                         </label>
                     </div>
