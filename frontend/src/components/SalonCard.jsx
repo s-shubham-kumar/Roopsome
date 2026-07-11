@@ -7,9 +7,17 @@ export default function SalonCard({ salon }) {
 
                 {/* Image */}
                 <div className="h-44 bg-gradient-to-br from-purple-400 to-pink-400 relative">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-5xl">💇</span>
-                    </div>
+                    {salon.image_url ? (
+                        <img
+                            src={salon.image_url}
+                            alt={salon.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-5xl">💇</span>
+                        </div>
+                    )}
                     {salon.allows_home_service && (
                         <div className="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
                             🏠 Home Service
