@@ -54,7 +54,7 @@ JWT_HOURS   = 24
 # ── Supabase Storage Config ────────────────────────────────────────────────
 SUPABASE_URL              = os.getenv('SUPABASE_URL', '')
 SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
-BUCKET_NAME               = 'Salon _image'   # exact bucket name
+BUCKET_NAME               = 'Salon-image'   # exact bucket name
 
 # ── Database ───────────────────────────────────────────────────────────────
 
