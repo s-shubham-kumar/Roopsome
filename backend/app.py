@@ -54,7 +54,7 @@ JWT_HOURS   = 24
 # ── Supabase Storage Config ────────────────────────────────────────────────
 SUPABASE_URL              = os.getenv('SUPABASE_URL', '')
 SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
-BUCKET_NAME               = 'Salon-image'   # exact bucket name
+BUCKET_NAME               = 'Salon _image'   # exact bucket name
 
 # ── Database ───────────────────────────────────────────────────────────────
 
@@ -293,35 +293,28 @@ def upload_salon_photo(sid):
     file_bytes = file.read()
 
     try:
-        from supabase import create_client, ClientOptions
-        sb = create_client(
-             SUPABASE_URL,
-             SUPABASE_SERVICE_ROLE_KEY,
-             options=ClientOptions(auto_refresh_token=False, persist_session=False)
+        import requests as req
+
+        # Direct Supabase Storage REST API — no Python client needed
+        upload_url = f"{SUPABASE_URL}/storage/v1/object/{BUCKET_NAME}/{file_path}"
+
+        upload_resp = req.post(
+            upload_url,
+            headers={
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": file.mimetype,
+                "x-upsert": "true"
+            },
+            data=file_bytes
         )
 
-        # 6. Delete old photo if exists
-        old_url = salon.get('image_url') or ''
-        if old_url and BUCKET_NAME in old_url:
-            try:
-                # Extract path after bucket name
-                old_path = old_url.split(f'/object/public/{BUCKET_NAME}/')[1]
-                sb.storage.from_(BUCKET_NAME).remove([old_path])
-            except Exception as e:
-                logger.warning(f"Old photo delete failed (non-critical): {e}")
+        if upload_resp.status_code not in [200, 201]:
+            raise Exception(f"Storage error {upload_resp.status_code}: {upload_resp.text}")
 
-        # 7. Upload new photo
-        sb.storage.from_(BUCKET_NAME).upload(
-            path=file_path,
-            file=file_bytes,
-            file_options={'content-type': file.mimetype}
-        )
+        # Public URL — direct construct karo
+        public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
 
-        # 8. Get public URL
-        url_response = sb.storage.from_(BUCKET_NAME).get_public_url(file_path)
-        public_url   = url_response  # supabase==2.3.0 returns string directly
-
-        # 9. Save URL to DB
+        # Save to DB
         query('UPDATE salons SET image_url=%s WHERE id=%s', (public_url, sid))
 
         logger.info(f"Photo uploaded for salon {sid}: {public_url}")
