@@ -205,12 +205,12 @@ def login():
 def list_salons():
     city = request.args.get('city')
     if city:
-        rows = query('''SELECT id, name, address, city, avg_rating,
+        rows = query('''SELECT id, name, address, city, avg_rating, image_url,
                                allows_home_service, opening_time, closing_time
                         FROM salons WHERE city=%s AND deleted_at IS NULL
                         ORDER BY avg_rating DESC''', (city,))
     else:
-        rows = query('''SELECT id, name, address, city, avg_rating,
+        rows = query('''SELECT id, name, address, city, avg_rating, image_url,
                                allows_home_service, opening_time, closing_time
                         FROM salons WHERE deleted_at IS NULL
                         ORDER BY avg_rating DESC LIMIT 50''')
