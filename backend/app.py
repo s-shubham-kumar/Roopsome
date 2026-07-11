@@ -293,8 +293,12 @@ def upload_salon_photo(sid):
     file_bytes = file.read()
 
     try:
-        from supabase import create_client
-        sb = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        from supabase import create_client, ClientOptions
+        sb = create_client(
+             SUPABASE_URL,
+             SUPABASE_SERVICE_ROLE_KEY,
+             options=ClientOptions(auto_refresh_token=False, persist_session=False)
+        )
 
         # 6. Delete old photo if exists
         old_url = salon.get('image_url') or ''
