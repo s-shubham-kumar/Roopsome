@@ -51,6 +51,11 @@ JWT_SECRET  = os.getenv('JWT_SECRET', 'secret')
 JWT_ALGO    = 'HS256'
 JWT_HOURS   = 24
 
+# ── Supabase Storage Config ────────────────────────────────────────────────
+SUPABASE_URL              = os.getenv('SUPABASE_URL', '')
+SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
+BUCKET_NAME               = 'Salon _image'   # exact bucket name
+
 # ── Database ───────────────────────────────────────────────────────────────
 
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -248,6 +253,85 @@ def create_salon():
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# PHOTO UPLOAD ROUTE (Secure - via Backend)
+# ══════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/v1/salon/<sid>/upload-photo', methods=['POST'])
+@auth(['salon_owner'])
+def upload_salon_photo(sid):
+    # 1. Verify ownership
+    salon = query(
+        'SELECT id, image_url FROM salons WHERE id=%s AND owner_id=%s AND deleted_at IS NULL',
+        (sid, request.uid), one=True
+    )
+    if not salon:
+        return jsonify({'error': 'Unauthorized or salon not found'}), 403
+
+    # 2. Check file in request
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo file provided'}), 400
+
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # 3. Validate file type
+    allowed_types = {'image/jpeg', 'image/png', 'image/webp'}
+    if file.mimetype not in allowed_types:
+        return jsonify({'error': 'Only JPG, PNG, WebP allowed'}), 400
+
+    # 4. Validate file size (max 5MB)
+    file.seek(0, 2)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > 5 * 1024 * 1024:
+        return jsonify({'error': 'Image must be under 5MB'}), 400
+
+    # 5. Build unique file path: salon_id/uuid.ext
+    ext       = file.filename.rsplit('.', 1)[-1].lower()
+    file_path = f"{sid}/{uuid.uuid4().hex}.{ext}"
+    file_bytes = file.read()
+
+    try:
+        from supabase import create_client
+        sb = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+        # 6. Delete old photo if exists
+        old_url = salon.get('image_url') or ''
+        if old_url and BUCKET_NAME in old_url:
+            try:
+                # Extract path after bucket name
+                old_path = old_url.split(f'/object/public/{BUCKET_NAME}/')[1]
+                sb.storage.from_(BUCKET_NAME).remove([old_path])
+            except Exception as e:
+                logger.warning(f"Old photo delete failed (non-critical): {e}")
+
+        # 7. Upload new photo
+        sb.storage.from_(BUCKET_NAME).upload(
+            path=file_path,
+            file=file_bytes,
+            file_options={'content-type': file.mimetype}
+        )
+
+        # 8. Get public URL
+        url_response = sb.storage.from_(BUCKET_NAME).get_public_url(file_path)
+        public_url   = url_response  # supabase==2.3.0 returns string directly
+
+        # 9. Save URL to DB
+        query('UPDATE salons SET image_url=%s WHERE id=%s', (public_url, sid))
+
+        logger.info(f"Photo uploaded for salon {sid}: {public_url}")
+        return jsonify({
+            'message'  : 'Photo uploaded successfully',
+            'photo_url': public_url
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Upload error for salon {sid}: {e}")
+        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # SERVICES ROUTES
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -347,7 +431,6 @@ def get_slots():
             ot = staff_info['opening_time']
             ct = staff_info['closing_time']
 
-            # Handle both string and time object
             if isinstance(ot, time_type):
                 opening = datetime.combine(datetime.min.date(), ot)
                 closing = datetime.combine(datetime.min.date(), ct)
@@ -424,11 +507,9 @@ def create_booking():
            btype, home_addr, svc['final_price'],
            home_charge, total, 'pending', 'awaiting'))
 
-    # Update slot count
     query('UPDATE time_slots SET booked_count=booked_count+1 WHERE id=%s',
           (slot_id,))
 
-    # Add to queue
     res = query('''SELECT COALESCE(MAX(queue_position),0)+1 AS nxt
                    FROM queue WHERE salon_id=%s AND queue_date=%s''',
                 (salon_id, booking_date), one=True)
@@ -761,6 +842,7 @@ def walk_in_queue(salon_id):
         'booking_id': bid
     }), 201
 
+
 @app.route('/api/v1/salons/<sid>/staff/<staff_id>', methods=['DELETE'])
 @auth(['salon_owner'])
 def remove_staff(sid, staff_id):
@@ -784,6 +866,7 @@ def remove_service(sid, service_id):
           (service_id, sid))
     return jsonify({'message': 'Service removed'})
 
+
 @app.route('/api/v1/salons/<sid>/services/<service_id>', methods=['PUT'])
 @auth(['salon_owner'])
 def update_service(sid, service_id):
@@ -801,6 +884,7 @@ def update_service(sid, service_id):
           (name, base_price, round(base_price, 2), duration, service_id, sid))
     return jsonify({'message': 'Service updated'})
 
+
 @app.route('/api/v1/salons/<sid>/image', methods=['PUT'])
 @auth(['salon_owner'])
 def update_salon_image(sid):
@@ -812,12 +896,15 @@ def update_salon_image(sid):
     query('UPDATE salons SET image_url=%s WHERE id=%s', (image_url, sid))
     return jsonify({'message': 'Image updated'})
 
+
 @app.route('/api/v1/account', methods=['DELETE'])
 @auth(['customer', 'barber', 'salon_owner'])
 def delete_account():
     query('UPDATE users SET is_active=FALSE WHERE id=%s', (request.uid,))
     query('UPDATE salons SET deleted_at=NOW() WHERE owner_id=%s', (request.uid,))
     return jsonify({'message': 'Account deleted'})
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # HEALTH CHECK
 # ══════════════════════════════════════════════════════════════════════════
