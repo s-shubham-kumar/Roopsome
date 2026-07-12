@@ -243,7 +243,10 @@ export default function Booking() {
                                     type="date"
                                     min={today}
                                     value={selected.date}
-                                    onChange={e => setSelected({ ...selected, date: e.target.value, slot: null })}
+                                    onChange={async e => {
+                                        const newDate = e.target.value
+                                        setSelected(prev => ({ ...prev, date: newDate, slot: null }))
+                                    }}
                                     className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-purple-500 text-base"
                                 />
                             </div>
