@@ -60,12 +60,12 @@ export default function BarberDashboard() {
         <div className="min-h-screen bg-gray-50">
             <Header />
 
-            <div className="max-w-4xl mx-auto px-4 py-8">
+            <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
 
                 {/* Header */}
-                <div className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-2xl p-6 mb-8">
-                    <h1 className="text-2xl font-bold">✂️ Barber Dashboard</h1>
-                    <p className="text-purple-100">Hi {fullName}! Manage your bookings</p>
+                <div className="bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-2xl p-5 sm:p-6 mb-6 sm:mb-8">
+                    <h1 className="text-xl sm:text-2xl font-bold">✂️ Barber Dashboard</h1>
+                    <p className="text-purple-100 text-sm sm:text-base">Hi {fullName}! Manage your bookings</p>
                     <div className="flex gap-4 mt-4">
                         <div className="bg-white/20 rounded-xl px-4 py-2 text-center">
                             <p className="text-xl font-bold">{bookings.length}</p>
@@ -75,7 +75,7 @@ export default function BarberDashboard() {
                 </div>
 
                 {/* Bookings */}
-                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
                     📋 Pending Booking Requests
                 </h2>
 
@@ -85,20 +85,20 @@ export default function BarberDashboard() {
                         <p className="text-gray-400">Loading bookings...</p>
                     </div>
                 ) : bookings.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-2xl">
-                        <div className="text-6xl mb-4">🎉</div>
-                        <h3 className="text-xl font-bold text-gray-700 mb-2">No pending requests</h3>
-                        <p className="text-gray-400">All caught up! New bookings will appear here.</p>
+                    <div className="text-center py-16 sm:py-20 bg-white rounded-2xl px-4">
+                        <div className="text-5xl sm:text-6xl mb-4">🎉</div>
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-700 mb-2">No pending requests</h3>
+                        <p className="text-gray-400 text-sm sm:text-base">All caught up! New bookings will appear here.</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         {bookings.map(b => (
-                            <div key={b.id} className="bg-white rounded-2xl p-5 shadow-sm border-2 border-yellow-200">
+                            <div key={b.id} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border-2 border-yellow-200">
 
                                 {/* Booking Info */}
                                 <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
-                                    <div>
-                                        <h3 className="font-bold text-gray-800 text-lg">{b.customer_name}</h3>
+                                    <div className="min-w-0">
+                                        <h3 className="font-bold text-gray-800 text-base sm:text-lg truncate">{b.customer_name}</h3>
                                         <p className="text-gray-500 text-sm">📱 {b.phone}</p>
                                         <p className="text-gray-600 text-sm mt-1">💇 {b.service_name}</p>
                                         <p className="text-gray-500 text-sm">
@@ -106,28 +106,28 @@ export default function BarberDashboard() {
                                         </p>
                                         <p className="text-purple-600 font-bold mt-1">₹{b.total_amount}</p>
                                     </div>
-                                    <span className="bg-yellow-100 text-yellow-700 text-xs px-3 py-1 rounded-full font-medium">
+                                    <span className="bg-yellow-100 text-yellow-700 text-xs px-3 py-1 rounded-full font-medium flex-shrink-0">
                                         ⏳ Awaiting Response
                                     </span>
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="flex gap-3 flex-wrap">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                                     <button
                                         onClick={() => handleAction(b.id, 'accept')}
-                                        className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition-colors"
+                                        className="bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 active:bg-green-700 transition-colors"
                                     >
                                         ✅ Accept
                                     </button>
                                     <button
                                         onClick={() => handleDelay(b.id)}
-                                        className="flex-1 bg-yellow-400 text-white py-3 rounded-xl font-bold hover:bg-yellow-500 transition-colors"
+                                        className="bg-yellow-400 text-white py-3 rounded-xl font-bold hover:bg-yellow-500 active:bg-yellow-600 transition-colors"
                                     >
                                         ⏰ Delay
                                     </button>
                                     <button
                                         onClick={() => handleReject(b.id)}
-                                        className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition-colors"
+                                        className="bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 active:bg-red-700 transition-colors"
                                     >
                                         ❌ Reject
                                     </button>
