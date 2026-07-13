@@ -11,7 +11,7 @@ export default function SalonCard({ salon }) {
                         <img
                             src={salon.image_url}
                             alt={salon.name}
-                            className="absolute inset-0 w-full h-full object-cover"
+                            className="absolute inset-0 w-full h-full object-cover object-top"
                         />
                     ) : (
                         <div className="absolute inset-0 flex items-center justify-center">
