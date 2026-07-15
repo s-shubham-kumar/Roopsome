@@ -13,7 +13,9 @@ export default function Booking() {
     const [staff, setStaff] = useState([])
     const [slots, setSlots] = useState([])
     const [loading, setLoading] = useState(false)
+    const [initialLoading, setInitialLoading] = useState(true)
     const [booking, setBooking] = useState(null)
+    const [addressError, setAddressError] = useState('')
 
     const [selected, setSelected] = useState({
         service: null,
@@ -27,13 +29,21 @@ export default function Booking() {
     })
 
     useEffect(() => {
-        fetchServices()
-        fetchStaff()
+        fetchInitialData()
     }, [salonId])
 
     useEffect(() => {
         if (selected.staff && selected.date) fetchSlots()
     }, [selected.staff, selected.date])
+
+    const fetchInitialData = async () => {
+        setInitialLoading(true)
+        try {
+            await Promise.all([fetchServices(), fetchStaff()])
+        } finally {
+            setInitialLoading(false)
+        }
+    }
 
     const fetchServices = async () => {
         try {
@@ -59,6 +69,15 @@ export default function Booking() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const goToConfirm = () => {
+        if (selected.bookingType === 'home_service' && !selected.homeAddress.trim()) {
+            setAddressError('Home service ke liye address zaroori hai')
+            return
+        }
+        setAddressError('')
+        setStep(5)
     }
 
     const handleBooking = async () => {
@@ -136,7 +155,6 @@ export default function Booking() {
 
                     {/* ── Step Progress Bar ── */}
                     <div className="mb-5">
-                        {/* Mobile: progress bar */}
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-semibold text-purple-600">
                                 Step {step} of {steps.length}
@@ -150,7 +168,6 @@ export default function Booking() {
                             />
                         </div>
 
-                        {/* Desktop: step dots */}
                         <div className="hidden md:flex items-center justify-between mt-3">
                             {steps.map((s, i) => (
                                 <div key={i} className="flex items-center">
@@ -176,7 +193,11 @@ export default function Booking() {
                         <div className="bg-white rounded-2xl p-5 shadow-sm">
                             <h2 className="text-lg font-bold text-gray-800 mb-4">✂️ Choose Service</h2>
                             <div className="space-y-3">
-                                {services.length === 0 ? (
+                                {initialLoading ? (
+                                    [1, 2, 3].map(i => (
+                                        <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                                    ))
+                                ) : services.length === 0 ? (
                                     <p className="text-gray-400 text-center py-8">No services available</p>
                                 ) : services.map(s => (
                                     <button
@@ -207,7 +228,9 @@ export default function Booking() {
                             </button>
                             <h2 className="text-lg font-bold text-gray-800 mb-4">👨‍💼 Choose Barber</h2>
                             <div className="space-y-3">
-                                {staff.map(s => (
+                                {staff.length === 0 ? (
+                                    <p className="text-gray-400 text-center py-8">No barbers available</p>
+                                ) : staff.map(s => (
                                     <button
                                         key={s.id}
                                         onClick={() => { setSelected({ ...selected, staff: s }); setStep(3) }}
@@ -301,7 +324,6 @@ export default function Booking() {
                             </button>
                             <h2 className="text-lg font-bold text-gray-800 mb-4">📝 Additional Details</h2>
 
-                            {/* Booking Type */}
                             <div className="mb-5">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Booking Type</label>
                                 <div className="grid grid-cols-2 gap-3">
@@ -311,7 +333,7 @@ export default function Booking() {
                                     ].map(type => (
                                         <button
                                             key={type.value}
-                                            onClick={() => setSelected({ ...selected, bookingType: type.value })}
+                                            onClick={() => { setSelected({ ...selected, bookingType: type.value }); setAddressError('') }}
                                             className={`py-3 rounded-xl font-medium text-sm border-2 transition-all ${selected.bookingType === type.value
                                                 ? 'border-purple-600 bg-purple-600 text-white'
                                                 : 'border-gray-200 text-gray-700 hover:border-purple-400'
@@ -325,17 +347,21 @@ export default function Booking() {
 
                             {selected.bookingType === 'home_service' && (
                                 <div className="mb-5">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Your Address</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Your Address *</label>
                                     <textarea
                                         placeholder="Enter your full address..."
                                         value={selected.homeAddress}
-                                        onChange={e => setSelected({ ...selected, homeAddress: e.target.value })}
-                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-purple-500 h-24 resize-none text-base"
+                                        onChange={e => { setSelected({ ...selected, homeAddress: e.target.value }); if (e.target.value.trim()) setAddressError('') }}
+                                        className={`w-full border rounded-xl px-4 py-3 outline-none h-24 resize-none text-base ${addressError ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-purple-500'}`}
                                     />
+                                    {addressError && (
+                                        <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                                            <span>⚠️</span> {addressError}
+                                        </p>
+                                    )}
                                 </div>
                             )}
 
-                            {/* Payment Mode */}
                             <div className="mb-5">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">💳 Payment Mode</label>
                                 <div className="space-y-2">
@@ -381,7 +407,7 @@ export default function Booking() {
                             </div>
 
                             <button
-                                onClick={() => setStep(5)}
+                                onClick={goToConfirm}
                                 className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-base hover:bg-purple-700 active:bg-purple-800 transition-colors"
                             >
                                 Review Booking →
@@ -398,7 +424,6 @@ export default function Booking() {
                             </button>
                             <h2 className="text-lg font-bold text-gray-800 mb-4">✅ Confirm Booking</h2>
 
-                            {/* Summary Card */}
                             <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-5 space-y-2.5">
                                 {[
                                     { label: 'Service', value: selected.service?.name },
@@ -406,15 +431,16 @@ export default function Booking() {
                                     { label: 'Date', value: selected.date },
                                     { label: 'Time', value: selected.slot?.slot_time?.slice(0, 5) },
                                     { label: 'Type', value: selected.bookingType === 'salon' ? '🏪 Visit Salon' : '🏠 Home Service' },
+                                    ...(selected.bookingType === 'home_service' ? [{ label: 'Address', value: selected.homeAddress }] : []),
                                     {
                                         label: 'Payment', value:
                                             selected.paymentMode === 'online' ? '💳 Online' :
                                                 selected.paymentMode === 'cash' ? '💵 Cash' : '🕐 Pay Later'
                                     },
                                 ].map(item => (
-                                    <div key={item.label} className="flex justify-between items-center">
-                                        <span className="text-gray-500 text-sm">{item.label}</span>
-                                        <span className="font-semibold text-gray-800 text-sm">{item.value}</span>
+                                    <div key={item.label} className="flex justify-between items-start gap-3">
+                                        <span className="text-gray-500 text-sm flex-shrink-0">{item.label}</span>
+                                        <span className="font-semibold text-gray-800 text-sm text-right">{item.value}</span>
                                     </div>
                                 ))}
                                 <div className="border-t border-purple-200 pt-2.5 flex justify-between items-center">
