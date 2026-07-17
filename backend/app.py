@@ -5,6 +5,7 @@ Salon Queue Management System
 
 import os
 import uuid
+import random 
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
@@ -134,6 +135,9 @@ def auth(roles=None):
         return wrapper
     return decorator
 
+def generate_otp():
+    """4-digit numeric OTP for booking completion verification"""
+    return str(random.randint(1000, 9999))
 # ══════════════════════════════════════════════════════════════════════════
 # AUTH ROUTES
 # ══════════════════════════════════════════════════════════════════════════
@@ -492,17 +496,18 @@ def create_booking():
 
     total = float(svc['final_price']) + home_charge
     bid   = str(uuid.uuid4())
+    otp   = generate_otp()
 
     query('''INSERT INTO bookings
              (id, salon_id, customer_id, staff_id, service_id, time_slot_id,
               booking_date, booking_time, duration_minutes, booking_type,
               home_service_address, service_price, home_service_charge,
-              total_amount, status, barber_response_status)
-             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
+              total_amount, status, barber_response_status, completion_otp)
+             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
           (bid, salon_id, request.uid, staff_id, service_id, slot_id,
            booking_date, booking_time, svc['duration_minutes'],
            btype, home_addr, svc['final_price'],
-           home_charge, total, 'pending', 'awaiting'))
+           home_charge, total, 'pending', 'awaiting', otp))
 
     query('UPDATE time_slots SET booked_count=booked_count+1 WHERE id=%s',
           (slot_id,))
@@ -522,7 +527,8 @@ def create_booking():
         'message'       : 'Booking created successfully',
         'booking_id'    : bid,
         'queue_position': qpos,
-        'total_amount'  : total
+        'total_amount'  : total,
+        'completion_otp': otp
     }), 201
 
 
@@ -540,8 +546,12 @@ def get_booking(bid):
                    WHERE b.id=%s''', (bid,), one=True)
     if not row:
         return jsonify({'error': 'Booking not found'}), 404
-    return jsonify(dict(row))
 
+    result = dict(row)
+    if request.role != 'customer' or result.get('customer_id') != request.uid:
+        result.pop('completion_otp', None)
+
+    return jsonify(result)
 
 @app.route('/api/v1/bookings/<bid>/cancel', methods=['PUT'])
 @auth(['customer'])
@@ -570,6 +580,8 @@ def cancel_booking(bid):
 def my_bookings():
     rows = query('''SELECT b.id, b.booking_date, b.booking_time, b.status,
                            b.total_amount, b.barber_response_status,
+                           b.booking_type, b.home_service_address,
+                           b.completion_otp,
                            s.name AS service_name,
                            st.name AS staff_name,
                            sal.name AS salon_name
@@ -592,7 +604,9 @@ def barber_bookings():
     barber = query('SELECT phone FROM users WHERE id=%s', (request.uid,), one=True)
     phone = barber['phone'] if barber else ''
 
-    rows = query('''SELECT b.*, u.full_name AS customer_name,
+    rows = query('''SELECT b.id, b.booking_date, b.booking_time, b.status,
+                           b.total_amount, b.booking_type, b.home_service_address,
+                           u.full_name AS customer_name,
                            u.phone AS customer_phone,
                            s.name AS service_name
                     FROM bookings b
@@ -645,12 +659,25 @@ def delay_booking(bid):
 @app.route('/api/v1/bookings/<bid>/complete', methods=['PUT'])
 @auth(['barber', 'salon_owner'])
 def complete_booking(bid):
+    bk = query('SELECT completion_otp FROM bookings WHERE id=%s', (bid,), one=True)
+    if not bk:
+        return jsonify({'error': 'Booking not found'}), 404
+
+    stored_otp = bk.get('completion_otp')
+    body = request.get_json(silent=True) or {}
+    submitted_otp = str(body.get('otp', '')).strip()
+
+    if stored_otp:
+        if not submitted_otp:
+            return jsonify({'error': 'OTP required to complete this booking'}), 400
+        if submitted_otp != stored_otp:
+            return jsonify({'error': 'Incorrect OTP'}), 400
+
     query('''UPDATE bookings SET status=%s, queue_position=NULL
              WHERE id=%s''', ('completed', bid))
     query("UPDATE queue SET status='completed', actual_end_time=NOW() WHERE booking_id=%s",
           (bid,))
     return jsonify({'message': 'Booking completed'})
-
 
 # ══════════════════════════════════════════════════════════════════════════
 # QUEUE ROUTES
@@ -661,7 +688,10 @@ def get_queue(salon_id):
     date = request.args.get('date', str(datetime.now().date()))
     rows = query('''SELECT q.queue_position, q.status,
                            b.booking_time, b.duration_minutes, b.id AS booking_id,
+                           b.booking_type, b.home_service_address,
+                           (b.completion_otp IS NOT NULL) AS otp_required,
                            u.full_name AS customer_name,
+                           u.phone AS customer_phone,
                            s.name  AS service_name,
                            st.name AS staff_name
                     FROM queue q
@@ -683,7 +713,6 @@ def get_queue(salon_id):
         result.append(item)
 
     return jsonify(result)
-
 
 # ══════════════════════════════════════════════════════════════════════════
 # PAYMENT ROUTES
