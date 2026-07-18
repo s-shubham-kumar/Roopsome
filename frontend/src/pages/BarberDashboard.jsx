@@ -99,11 +99,20 @@ export default function BarberDashboard() {
                                 <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
                                     <div className="min-w-0">
                                         <h3 className="font-bold text-gray-800 text-lg truncate">{b.customer_name}</h3>
-                                        <p className="text-gray-500 text-sm">📱 {b.phone}</p>
+                                        {b.customer_phone && (
+                                            <a href={`tel:${b.customer_phone}`} className="text-purple-600 text-sm font-medium hover:underline">
+                                                📱 {b.customer_phone}
+                                            </a>
+                                        )}
                                         <p className="text-gray-600 text-sm mt-1">💇 {b.service_name}</p>
                                         <p className="text-gray-500 text-sm">
                                             📅 {b.booking_date} at {b.booking_time?.slice(0, 5)}
                                         </p>
+                                        {b.booking_type === 'home_service' && b.home_service_address && (
+                                            <p className="text-gray-500 text-sm mt-1 flex items-start gap-1">
+                                                <span>🏠</span> <span>{b.home_service_address}</span>
+                                            </p>
+                                        )}
                                         <p className="text-purple-600 font-bold mt-1">₹{b.total_amount}</p>
                                     </div>
                                     <span className="bg-yellow-100 text-yellow-700 text-xs px-3 py-1 rounded-full font-medium flex-shrink-0">

@@ -487,6 +487,16 @@ export default function Booking() {
                             Your appointment has been booked successfully.
                         </p>
 
+                        {booking.completion_otp && (
+                            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4 mb-5">
+                                <p className="text-xs text-purple-500 font-medium mb-1">🔐 Service Completion Code</p>
+                                <p className="text-3xl font-bold text-purple-700 tracking-widest mb-1">{booking.completion_otp}</p>
+                                <p className="text-xs text-gray-500">
+                                    Service complete hone par ye code barber ko batao — isse confirm hoga ki service mil gayi.
+                                </p>
+                            </div>
+                        )}
+
                         <div className="bg-gray-50 rounded-xl p-4 text-left space-y-2 mb-6">
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-500">Booking ID</span>

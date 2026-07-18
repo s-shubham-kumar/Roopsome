@@ -111,11 +111,18 @@ export default function OwnerDashboard() {
         } catch (err) { alert(err.response?.data?.error || 'Failed to add customer') }
     }
 
-    const markDone = async (bookingId) => {
+    const markDone = async (bookingId, otpRequired) => {
+        let otp = ''
+        if (otpRequired) {
+            otp = prompt('Customer se OTP maango aur yahan enter karo:')
+            if (!otp) return
+        }
         try {
-            await axios.put(api(`/api/v1/bookings/${bookingId}/complete`), {}, { headers: headers() })
+            await axios.put(api(`/api/v1/bookings/${bookingId}/complete`), { otp }, { headers: headers() })
             fetchQueue(salon.id)
-        } catch { }
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to complete')
+        }
     }
     const removeStaff = async (staffId) => {
         if (!window.confirm('Remove this staff member?')) return
@@ -162,14 +169,12 @@ export default function OwnerDashboard() {
     const uploadPhoto = async (file) => {
         if (!file || !salon) return
 
-        // File type check
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
         if (!allowedTypes.includes(file.type)) {
             alert('Only JPG, PNG, WebP images allowed')
             return
         }
 
-        // File size check (5MB max)
         if (file.size > 5 * 1024 * 1024) {
             alert('Image must be under 5MB')
             return
@@ -186,7 +191,6 @@ export default function OwnerDashboard() {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                        // ⚠️ Content-Type bilkul mat daalo — browser khud set karega
                     },
                     body: formData,
                 }
@@ -389,6 +393,17 @@ export default function OwnerDashboard() {
                                             <div className="min-w-0">
                                                 <p className="font-semibold text-gray-800 truncate">{item.customer_name}</p>
                                                 <p className="text-gray-500 text-sm truncate">{item.service_name} • {item.staff_name}</p>
+                                                {item.customer_phone && (
+                                                    <a href={`tel:${item.customer_phone}`}
+                                                        className="text-purple-600 text-xs font-medium hover:underline">
+                                                        📱 {item.customer_phone}
+                                                    </a>
+                                                )}
+                                                {item.booking_type === 'home_service' && item.home_service_address && (
+                                                    <p className="text-gray-500 text-xs mt-0.5 flex items-start gap-1">
+                                                        <span>🏠</span> <span className="truncate">{item.home_service_address}</span>
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3 flex-wrap pl-14 sm:pl-0">
@@ -397,7 +412,7 @@ export default function OwnerDashboard() {
                                                 {item.status}
                                             </span>
                                             {item.status !== 'completed' && (
-                                                <button onClick={() => markDone(item.booking_id)}
+                                                <button onClick={() => markDone(item.booking_id, item.otp_required)}
                                                     className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-600">
                                                     ✓ Done
                                                 </button>

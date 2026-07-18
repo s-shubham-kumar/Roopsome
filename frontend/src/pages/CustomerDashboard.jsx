@@ -211,6 +211,22 @@ export default function CustomerDashboard() {
                                             </div>
                                         </div>
 
+                                        {/* Home service address */}
+                                        {b.booking_type === 'home_service' && b.home_service_address && (
+                                            <div className="flex items-start gap-1.5 mb-3 bg-gray-50 rounded-lg p-2.5">
+                                                <span className="text-gray-400 text-xs mt-0.5">🏠</span>
+                                                <span className="text-xs text-gray-600">{b.home_service_address}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Completion OTP - only for upcoming bookings */}
+                                        {isUpcoming && b.completion_otp && (
+                                            <div className="flex items-center justify-between bg-purple-50 border border-purple-100 rounded-lg p-2.5 mb-3">
+                                                <span className="text-xs text-purple-500 font-medium">🔐 Completion Code</span>
+                                                <span className="text-lg font-bold text-purple-700 tracking-widest">{b.completion_otp}</span>
+                                            </div>
+                                        )}
+
                                         {/* Action buttons */}
                                         {(isUpcoming || b.status === 'completed') && (
                                             <div className="flex gap-2 pt-3 border-t border-gray-100">
