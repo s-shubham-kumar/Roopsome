@@ -597,6 +597,29 @@ def my_bookings():
 # ══════════════════════════════════════════════════════════════════════════
 # BARBER ROUTES
 # ══════════════════════════════════════════════════════════════════════════
+@app.route('/api/v1/barber/status', methods=['GET'])
+@auth(['barber'])
+def barber_status():
+    user = query('SELECT phone FROM users WHERE id=%s', (request.uid,), one=True)
+    phone = user['phone'] if user else ''
+
+    staff_row = query('''SELECT st.id AS staff_id, st.name, st.specialization,
+                                sal.id AS salon_id, sal.name AS salon_name
+                         FROM staff st
+                         JOIN salons sal ON st.salon_id = sal.id
+                         WHERE st.phone = %s AND st.is_available = TRUE
+                         LIMIT 1''', (phone,), one=True)
+
+    if not staff_row:
+        return jsonify({'linked': False, 'phone': phone})
+
+    return jsonify({
+        'linked'    : True,
+        'phone'     : phone,
+        'salon_id'  : staff_row['salon_id'],
+        'salon_name': staff_row['salon_name'],
+        'staff_name': staff_row['name']
+    })
 
 @app.route('/api/v1/barber/bookings', methods=['GET'])
 @auth(['barber'])
@@ -618,6 +641,43 @@ def barber_bookings():
                     ORDER BY b.created_at''', ('awaiting', phone))
     return jsonify([dict(r) for r in rows])
 
+@app.route('/api/v1/barber/queue', methods=['GET'])
+@auth(['barber'])
+def barber_queue():
+    user = query('SELECT phone FROM users WHERE id=%s', (request.uid,), one=True)
+    phone = user['phone'] if user else ''
+
+    staff_row = query('SELECT id FROM staff WHERE phone=%s AND is_available=TRUE LIMIT 1',
+                      (phone,), one=True)
+    if not staff_row:
+        return jsonify([])
+
+    date = request.args.get('date', str(datetime.now().date()))
+    rows = query('''SELECT q.queue_position, q.status,
+                           b.booking_time, b.duration_minutes, b.id AS booking_id,
+                           b.booking_type, b.home_service_address,
+                           (b.completion_otp IS NOT NULL) AS otp_required,
+                           u.full_name AS customer_name,
+                           u.phone AS customer_phone,
+                           s.name AS service_name
+                    FROM queue q
+                    JOIN bookings b ON q.booking_id  = b.id
+                    JOIN users    u ON b.customer_id = u.id
+                    JOIN services s ON b.service_id  = s.id
+                    WHERE q.staff_id=%s AND q.queue_date=%s
+                      AND b.status IN (%s,%s)
+                    ORDER BY q.queue_position''',
+                 (staff_row['id'], date, 'pending', 'confirmed'))
+
+    result = []
+    wait = 0
+    for r in rows:
+        item = dict(r)
+        item['estimated_wait_minutes'] = wait
+        wait += r['duration_minutes']
+        result.append(item)
+
+    return jsonify(result)
 
 @app.route('/api/v1/bookings/<bid>/accept', methods=['PUT'])
 @auth(['barber'])
@@ -657,11 +717,18 @@ def delay_booking(bid):
 
 
 @app.route('/api/v1/bookings/<bid>/complete', methods=['PUT'])
-@auth(['barber', 'salon_owner'])
+@auth(['barber'])
 def complete_booking(bid):
-    bk = query('SELECT completion_otp FROM bookings WHERE id=%s', (bid,), one=True)
+    bk = query('SELECT completion_otp, staff_id FROM bookings WHERE id=%s', (bid,), one=True)
     if not bk:
         return jsonify({'error': 'Booking not found'}), 404
+
+    user = query('SELECT phone FROM users WHERE id=%s', (request.uid,), one=True)
+    phone = user['phone'] if user else ''
+    staff_row = query('SELECT id FROM staff WHERE phone=%s AND is_available=TRUE LIMIT 1',
+                      (phone,), one=True)
+    if not staff_row or staff_row['id'] != bk['staff_id']:
+        return jsonify({'error': 'Yeh booking aapko assign nahi hai'}), 403
 
     stored_otp = bk.get('completion_otp')
     body = request.get_json(silent=True) or {}
@@ -813,6 +880,27 @@ def my_salon():
         return jsonify({'error': 'No salon found'}), 404
     return jsonify(dict(row))
 
+@app.route('/api/v1/salon/<sid>/analytics', methods=['GET'])
+@auth(['salon_owner'])
+def salon_analytics(sid):
+    salon = query('SELECT id FROM salons WHERE id=%s AND owner_id=%s',
+                  (sid, request.uid), one=True)
+    if not salon:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    def period_stats(days_back):
+        row = query('''SELECT COUNT(*) AS customers, COALESCE(SUM(total_amount),0) AS revenue
+                       FROM bookings
+                       WHERE salon_id=%s AND status=%s
+                         AND booking_date >= CURRENT_DATE - (%s * INTERVAL '1 day')''',
+                    (sid, 'completed', days_back), one=True)
+        return {'customers': row['customers'], 'revenue': float(row['revenue'])}
+
+    return jsonify({
+        'daily'  : period_stats(0),
+        'weekly' : period_stats(6),
+        'monthly': period_stats(29)
+    })
 
 @app.route('/api/v1/queue/<salon_id>/walk-in', methods=['POST'])
 @auth(['salon_owner'])
