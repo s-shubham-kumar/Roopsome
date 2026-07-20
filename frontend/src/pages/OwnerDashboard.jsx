@@ -41,6 +41,7 @@ export default function OwnerDashboard() {
             fetchQueue(res.data.id)
             fetchStaff(res.data.id)
             fetchServices(res.data.id)
+            fetchAnalytics(res.data.id)
         } catch {
             setLoading(false)
         }
@@ -111,18 +112,16 @@ export default function OwnerDashboard() {
         } catch (err) { alert(err.response?.data?.error || 'Failed to add customer') }
     }
 
-    const markDone = async (bookingId, otpRequired) => {
-        let otp = ''
-        if (otpRequired) {
-            otp = prompt('Customer se OTP maango aur yahan enter karo:')
-            if (!otp) return
-        }
+    const [analytics, setAnalytics] = useState(null)
+    const [analyticsLoading, setAnalyticsLoading] = useState(false)
+
+    const fetchAnalytics = async (sid) => {
+        setAnalyticsLoading(true)
         try {
-            await axios.put(api(`/api/v1/bookings/${bookingId}/complete`), { otp }, { headers: headers() })
-            fetchQueue(salon.id)
-        } catch (err) {
-            alert(err.response?.data?.error || 'Failed to complete')
-        }
+            const res = await axios.get(api(`/api/v1/salon/${sid}/analytics`), { headers: headers() })
+            setAnalytics(res.data)
+        } catch { }
+        setAnalyticsLoading(false)
     }
     const removeStaff = async (staffId) => {
         if (!window.confirm('Remove this staff member?')) return
@@ -169,12 +168,14 @@ export default function OwnerDashboard() {
     const uploadPhoto = async (file) => {
         if (!file || !salon) return
 
+        // File type check
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
         if (!allowedTypes.includes(file.type)) {
             alert('Only JPG, PNG, WebP images allowed')
             return
         }
 
+        // File size check (5MB max)
         if (file.size > 5 * 1024 * 1024) {
             alert('Image must be under 5MB')
             return
@@ -191,6 +192,7 @@ export default function OwnerDashboard() {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        // ⚠️ Content-Type bilkul mat daalo — browser khud set karega
                     },
                     body: formData,
                 }
@@ -323,7 +325,7 @@ export default function OwnerDashboard() {
             <div className="max-w-5xl mx-auto px-4 py-6">
                 {/* Tabs */}
                 <div className="flex gap-2 mb-6 bg-white rounded-xl p-1 shadow-sm w-full sm:w-fit overflow-x-auto">
-                    {[['queue', '📋 Queue'], ['staff', '👥 Staff'], ['services', '✂️ Services']].map(([key, label]) => (
+                    {[['queue', '📋 Queue'], ['staff', '👥 Staff'], ['services', '✂️ Services'], ['analytics', '📊 Analytics']].map(([key, label]) => (
                         <button key={key} onClick={() => setTab(key)}
                             className={`px-3 sm:px-5 py-2 rounded-lg text-sm font-medium transition-all flex-1 sm:flex-none whitespace-nowrap ${tab === key ? 'bg-purple-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}>
                             {label}
@@ -334,13 +336,16 @@ export default function OwnerDashboard() {
                 {/* QUEUE TAB */}
                 {tab === 'queue' && (
                     <div>
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-1">
                             <h2 className="text-lg font-bold text-gray-800">Today's Queue</h2>
                             <button onClick={() => setAddingCustomer(true)}
                                 className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-purple-700 w-full sm:w-auto">
                                 + Add Customer
                             </button>
                         </div>
+                        <p className="text-xs text-gray-400 mb-4">
+                            ℹ️ Booking complete karna ab barber apne dashboard se karega
+                        </p>
 
                         {addingCustomer && (
                             <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 mb-4">
@@ -411,12 +416,6 @@ export default function OwnerDashboard() {
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
                                                 {item.status}
                                             </span>
-                                            {item.status !== 'completed' && (
-                                                <button onClick={() => markDone(item.booking_id, item.otp_required)}
-                                                    className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-600">
-                                                    ✓ Done
-                                                </button>
-                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -430,7 +429,10 @@ export default function OwnerDashboard() {
                     <div>
                         <h2 className="text-lg font-bold text-gray-800 mb-4">Staff Members</h2>
                         <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 mb-4">
-                            <h3 className="font-semibold text-gray-700 mb-3">Add New Staff</h3>
+                            <h3 className="font-semibold text-gray-700 mb-1">Add New Staff</h3>
+                            <p className="text-xs text-gray-400 mb-3">
+                                ⚠️ Barber isi phone number se signup karega tabhi unhe apna dashboard aur bookings dikhengi
+                            </p>
                             <form onSubmit={addStaff} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <input required placeholder="Name *" value={newStaff.name}
                                     onChange={e => setNewStaff({ ...newStaff, name: e.target.value })}
@@ -564,6 +566,47 @@ export default function OwnerDashboard() {
                     </div>
                 )
                 }
+
+                {/* ANALYTICS TAB */}
+                {tab === 'analytics' && (
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-800 mb-4">📊 Business Overview</h2>
+                        {analyticsLoading ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
+                                ))}
+                            </div>
+                        ) : !analytics ? (
+                            <div className="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-400">
+                                Data load nahi ho payi
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {[
+                                    { key: 'daily', label: 'Aaj (Today)', color: 'from-purple-500 to-purple-600' },
+                                    { key: 'weekly', label: 'Is Hafte (7 din)', color: 'from-pink-500 to-pink-600' },
+                                    { key: 'monthly', label: 'Is Mahine (30 din)', color: 'from-indigo-500 to-indigo-600' },
+                                ].map(p => (
+                                    <div key={p.key} className={`bg-gradient-to-br ${p.color} text-white rounded-2xl p-5 shadow-sm`}>
+                                        <p className="text-sm font-medium opacity-90 mb-3">{p.label}</p>
+                                        <div className="mb-3">
+                                            <p className="text-3xl font-bold">{analytics[p.key].customers}</p>
+                                            <p className="text-xs opacity-80">Customers Served</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-2xl font-bold">₹{analytics[p.key].revenue}</p>
+                                            <p className="text-xs opacity-80">Revenue</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <p className="text-xs text-gray-400 mt-4">
+                            Sirf completed bookings hi customer count aur revenue mein count hoti hain.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     )
